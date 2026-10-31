@@ -3,7 +3,7 @@
  * Plugin Name: OD Mesh Gradient
  * Plugin URI: https://github.com/Olein-jp/od-mesh-gradient
  * Description: Visual mesh gradients for supported WordPress blocks.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 7.1
  * Requires PHP: 8.2
  * Author: Koji Kuno

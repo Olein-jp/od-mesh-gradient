@@ -84,6 +84,25 @@ final class Plugin {
 					'selector'  => '&',
 				);
 			}
+			// unitone は既定クラスを使わず、HTML タグを変更しても専用ルートクラスを維持する.
+			if ( ! $adapter && 'unitone/section' === $name ) {
+				$adapter = array(
+					'tag'       => '',
+					'className' => 'unitone-section',
+					'selector'  => '&',
+				);
+			}
+			if ( ! $adapter && 'unitone/decorator' === $name ) {
+				$adapter = array(
+					'tag'       => '',
+					'className' => '',
+					'selector'  => '&',
+					'attribute' => array(
+						'name'  => 'data-unitone-layout',
+						'token' => 'decorator',
+					),
+				);
+			}
 			if ( ! in_array( $strategy, array( 'auto', 'root', 'custom' ), true ) || ! $adapter || ( 'custom' === $strategy && ! isset( self::$adapters[ $name ] ) ) ) {
 				$adapter = null;
 			}
@@ -137,6 +156,14 @@ final class Plugin {
 		if ( '&' === $adapter['selector'] ) {
 			if ( ! $tags->next_tag() || ( $adapter['className'] && ! $tags->has_class( $adapter['className'] ) ) || ( $adapter['tag'] && $tags->get_tag() !== $adapter['tag'] ) ) {
 				return $html;
+			}
+			if ( isset( $adapter['attribute'] ) ) {
+				$attribute = $adapter['attribute'];
+				$layout    = $tags->get_attribute( $attribute['name'] );
+				// HTML の空白区切りトークンに一致させ、decorator__inner 等は拒否する.
+				if ( ! is_string( $layout ) || ! in_array( $attribute['token'], preg_split( '/[\x09\x0a\x0c\x0d\x20]+/', $layout ), true ) ) {
+					return $html;
+				}
 			}
 		} else {
 			$query = array( 'class_name' => $adapter['className'] );

@@ -55,4 +55,58 @@ $dynamic = render_block( array( 'blockName' => 'od-mesh-test/dynamic', 'attrs' =
 od_mesh_assert( str_contains( $dynamic, $css ) && str_contains( $dynamic, '動的本文' ), '動的ブロック' );
 $copy = $mesh; $copy['points'][1]['id'] = $copy['points'][0]['id']; od_mesh_assert( ! AttributeValidator::valid( $copy ), 'ID 重複' );
 $copy = $mesh; $copy['points'][0]['size'] = 150; $copy['points'][0]['x'] = 0; $copy['points'][0]['opacity'] = 0; od_mesh_assert( AttributeValidator::valid( $copy ), '数値境界' );
+if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'unitone/section' ) ) {
+ register_block_type( 'unitone/section', array( 'supports' => array( 'className' => false, 'background' => array( 'gradient' => true ), 'color' => array( 'gradients' => true ) ) ) );
+}
+Plugin::configure();
+$block['blockName'] = 'unitone/section';
+$block['attrs']['odMeshGradient'] = $mesh;
+foreach ( array( 'main', 'section', 'article', 'aside', 'header', 'footer', 'div' ) as $tag ) {
+ $fragment = '<' . $tag . ' class="unitone-section" style="color:red;background-image:url(old.jpg)"><div data-unitone-layout="gutters"><div data-unitone-layout="container"><div data-unitone-layout="stack"><p>本文</p></div></div></div></' . $tag . '>';
+ $rendered = Plugin::render( $fragment, $block );
+ $parser = new WP_HTML_Tag_Processor( $rendered ); $parser->next_tag();
+ od_mesh_assert( $parser->has_class( 'unitone-section' ) && str_contains( $parser->get_attribute( 'style' ), $css ), 'unitone のルート適用 ' . $tag );
+ od_mesh_assert( str_contains( $rendered, 'color:red;background-image:url(old.jpg)' ) && str_contains( $rendered, '<div data-unitone-layout="stack"><p>本文</p></div>' ), 'unitone の元スタイル・内部構造保持 ' . $tag );
+ $disabled = $block; $disabled['attrs']['odMeshGradient']['enabled'] = false;
+ od_mesh_assert( Plugin::render( $fragment, $disabled ) === $fragment, 'unitone の無効化 ' . $tag );
+}
+$nested = '<section class="unitone-section"><div data-unitone-layout="gutters"><section class="unitone-section">内側</section></div></section>';
+$rendered = Plugin::render( $nested, $block );
+od_mesh_assert( substr_count( $rendered, $css ) === 1 && str_contains( $rendered, '<section class="unitone-section">内側</section>' ), 'unitone の入れ子に誤適用しない' );
+$unknown = '<section><div class="unitone-section">構造の変更</div></section>';
+od_mesh_assert( Plugin::render( $unknown, $block ) === $unknown, 'unitone の未知の構造は維持' );
+add_filter( 'od_mesh_gradient_render_strategy', function( $strategy, $name ) { return $name === 'unitone/section' ? 'disabled' : $strategy; }, 10, 2 );
+Plugin::configure();
+od_mesh_assert( Plugin::render( $nested, $block ) === $nested, 'unitone 対応も除外設定を尊重' );
+if ( ! WP_Block_Type_Registry::get_instance()->is_registered( 'unitone/decorator' ) ) {
+ register_block_type( 'unitone/decorator', array( 'supports' => array( 'className' => false, 'background' => array( 'gradient' => true ), 'color' => array( 'gradients' => true ) ) ) );
+}
+Plugin::configure();
+$block['blockName'] = 'unitone/decorator';
+foreach ( array( 'main', 'section', 'article', 'aside', 'header', 'footer', 'div' ) as $tag ) {
+ foreach ( array( false, true ) as $linked ) {
+  $content = $linked ? '<div data-unitone-layout="decorator__inner"><div><p>本文</p></div><a data-unitone-layout="decorator__link" href="/details" target="_blank" rel="noopener">詳細</a></div>' : '<p>本文</p>';
+  $fragment = '<' . $tag . ' data-unitone-layout="decorator' . ( $linked ? ' -has-link' : '' ) . '" style="color:red;background-image:url(old.jpg)">' . $content . '</' . $tag . '>';
+  $rendered = Plugin::render( $fragment, $block );
+  $parser = new WP_HTML_Tag_Processor( $rendered ); $parser->next_tag();
+  od_mesh_assert( str_contains( $parser->get_attribute( 'style' ), $css ) && str_contains( $rendered, 'color:red;background-image:url(old.jpg)' ) && str_contains( $rendered, $content ), 'デコレーターのルート適用・リンク保持 ' . $tag . ( $linked ? ' リンクあり' : '' ) );
+  $disabled = $block; $disabled['attrs']['odMeshGradient']['enabled'] = false;
+  od_mesh_assert( Plugin::render( $fragment, $disabled ) === $fragment, 'デコレーターの無効化 ' . $tag );
+ }
+}
+$button = '<div role="button" data-unitone-layout="decorator"><p>ボタン本文</p></div>';
+od_mesh_assert( str_contains( Plugin::render( $button, $block ), $css ) && str_contains( Plugin::render( $button, $block ), 'role="button"' ), 'デコレーターのボタン指定保持' );
+$nested = '<div data-unitone-layout="decorator"><div data-unitone-layout="decorator">子</div></div>';
+od_mesh_assert( substr_count( Plugin::render( $nested, $block ), $css ) === 1 && str_contains( Plugin::render( $nested, $block ), '<div data-unitone-layout="decorator">子</div>' ), 'デコレーターの子に誤適用しない' );
+foreach ( array( 'decorator__inner', 'decorator__link', 'not-decorator', 'decorator-other', 'DECORATOR' ) as $token ) {
+ $unsafe = '<div data-unitone-layout="' . $token . '"><div data-unitone-layout="decorator">子</div></div>';
+ od_mesh_assert( Plugin::render( $unsafe, $block ) === $unsafe, 'デコレーターの完全一致 ' . $token );
+}
+$whitespace = "<div data-unitone-layout=\"-has-link\tdecorator\n-padding:1\"><p>空白</p></div>";
+od_mesh_assert( str_contains( Plugin::render( $whitespace, $block ), $css ), 'デコレーターの HTML 空白トークン' );
+$missing = '<div data-unitone-layout><p>属性の値がない</p></div>';
+od_mesh_assert( Plugin::render( $missing, $block ) === $missing, 'デコレーターの属性値がない場合' );
+add_filter( 'od_mesh_gradient_supported_blocks', function( $blocks ) { $blocks['unitone/decorator'] = false; return $blocks; } );
+Plugin::configure();
+od_mesh_assert( Plugin::render( $button, $block ) === $button, 'デコレーターも除外フィルターを尊重' );
 echo "PHP 統合テスト: " . $GLOBALS['od_mesh_checks'] . " 件成功\n";

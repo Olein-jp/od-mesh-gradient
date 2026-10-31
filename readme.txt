@@ -4,7 +4,7 @@ Tags: gradient, block-editor, design
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,11 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 3. スタイル内の「メッシュグラデーション」を開きます。
 
 == Changelog ==
+= 0.1.2 =
+* unitone のセクションとデコレーターに内蔵アダプターを追加。
+* 可変 HTML タグ、リンク付きデコレーター、ボタン指定、入れ子の描画に対応。
+* ルート属性の完全一致で背景の適用先を確認します。
+
 = 0.1.1 =
 * 選択中のプリセット名を表示するように修正。手動変更時は「カスタム」と表示します。
 * 保存・再読み込み、Undo／Redo に合わせてプリセット表示を復元します。

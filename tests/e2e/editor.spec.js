@@ -359,3 +359,350 @@ test( 'コアと拡張ブロックの候補判定・アダプター・保存互�
 	}
 	expect( errors ).toEqual( [] );
 } );
+
+test( 'unitone セクションの警告解消・可変タグ・入れ子・保存と背景復元', async ( {
+	page,
+} ) => {
+	const errors = [];
+	page.on( 'pageerror', ( e ) => errors.push( e.message ) );
+	await page.goto( '/wp-login.php' );
+	await page.locator( '#user_login' ).fill( 'admin' );
+	await page.locator( '#user_pass' ).fill( 'password' );
+	await page.locator( '#wp-submit' ).click();
+	await page.goto( '/wp-admin/post-new.php' );
+	const frame = page.frameLocator( 'iframe[name="editor-canvas"]' );
+	await expect(
+		frame.locator( '.block-editor-block-list__layout' ).first()
+	).toBeVisible();
+	await page.waitForFunction( () =>
+		Boolean( window.wp?.blocks?.getBlockType( 'unitone/section' ) )
+	);
+	await page.evaluate( () => {
+		const make = ( tagName, text, inner = [] ) =>
+			wp.blocks.createBlock(
+				'unitone/section',
+				{ tagName, style: { color: { background: '#123456' } } },
+				[
+					wp.blocks.createBlock( 'core/paragraph', {
+						content: text,
+					} ),
+					...inner,
+				]
+			);
+		const blocks = [
+			'main',
+			'section',
+			'article',
+			'aside',
+			'header',
+			'footer',
+			'div',
+		].map( ( tag ) =>
+			make(
+				tag,
+				`unitone 検証 ${ tag }`,
+				tag === 'section' ? [ make( 'section', '内側セクション' ) ] : []
+			)
+		);
+		wp.data.dispatch( 'core/block-editor' ).resetBlocks( blocks );
+		wp.data
+			.dispatch( 'core/editor' )
+			.editPost( { title: 'unitone section adapter', status: 'draft' } );
+		wp.data
+			.dispatch( 'core/block-editor' )
+			.selectBlock( blocks[ 1 ].clientId );
+	} );
+	const styles = page.getByRole( 'tab', { name: /スタイル|Styles/ } );
+	if ( await styles.count() ) await styles.click();
+	await page
+		.getByRole( 'button', { name: 'メッシュグラデーション', exact: true } )
+		.click();
+	await expect(
+		page.getByText(
+			'このブロックは描画互換性が未確認です。対応アダプターを登録するまで背景を適用しません。',
+			{ exact: true }
+		)
+	).toHaveCount( 0 );
+	await page
+		.getByRole( 'checkbox', {
+			name: 'メッシュグラデーションを使用',
+			exact: true,
+		} )
+		.check();
+	await expect(
+		frame.locator( '[data-type="unitone/section"]' ).nth( 1 )
+	).toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect(
+		frame.locator( '[data-type="unitone/section"]' ).nth( 2 )
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	await page.evaluate( async () => {
+		const blocks = wp.data.select( 'core/block-editor' ).getBlocks();
+		const mesh = blocks[ 1 ].attributes.odMeshGradient;
+		for ( const b of blocks )
+			wp.data
+				.dispatch( 'core/block-editor' )
+				.updateBlockAttributes( b.clientId, { odMeshGradient: mesh } );
+		await wp.data.dispatch( 'core/editor' ).savePost();
+	} );
+	const id = await page.evaluate( () =>
+		wp.data.select( 'core/editor' ).getCurrentPostId()
+	);
+	await page.reload();
+	await page.waitForFunction(
+		() =>
+			window.wp?.data?.select( 'core/block-editor' ).getBlocks()
+				.length === 7
+	);
+	expect(
+		await page.evaluate( () =>
+			wp.data
+				.select( 'core/block-editor' )
+				.getBlocks()
+				.every(
+					( b ) =>
+						b.isValid &&
+						b.innerBlocks.every( ( inner ) => inner.isValid )
+				)
+		)
+	).toBe( true );
+	for ( const tag of [
+		'main',
+		'section',
+		'article',
+		'aside',
+		'header',
+		'footer',
+		'div',
+	] )
+		await expect(
+			frame.locator( `${ tag }[data-type="unitone/section"]` ).first()
+		).toHaveCSS( 'background-image', /radial-gradient/ );
+	const frontend = await page.context().newPage();
+	await frontend.goto( `/?p=${ id }&preview=true` );
+	for ( const tag of [
+		'main',
+		'section',
+		'article',
+		'aside',
+		'header',
+		'footer',
+		'div',
+	] )
+		await expect(
+			frontend.locator( `${ tag }.unitone-section` ).first()
+		).toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect(
+		frontend.locator( 'section.unitone-section section.unitone-section' )
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	await page.evaluate( async () => {
+		for ( const b of wp.data.select( 'core/block-editor' ).getBlocks() )
+			wp.data
+				.dispatch( 'core/block-editor' )
+				.updateBlockAttributes( b.clientId, {
+					odMeshGradient: {
+						...b.attributes.odMeshGradient,
+						enabled: false,
+					},
+				} );
+		await wp.data.dispatch( 'core/editor' ).savePost();
+	} );
+	await frontend.reload();
+	await expect(
+		frontend.locator( 'div.unitone-section' ).first()
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect( frontend.locator( 'div.unitone-section' ).first() ).toHaveCSS(
+		'background-color',
+		'rgb(18, 52, 86)'
+	);
+	await frontend.close();
+	expect( errors ).toEqual( [] );
+} );
+
+test( 'unitone デコレーターのリンク・ボタン・入れ子・背景復元', async ( {
+	page,
+} ) => {
+	const errors = [];
+	page.on( 'pageerror', ( e ) => errors.push( e.message ) );
+	await page.goto( '/wp-login.php' );
+	await page.locator( '#user_login' ).fill( 'admin' );
+	await page.locator( '#user_pass' ).fill( 'password' );
+	await page.locator( '#wp-submit' ).click();
+	await page.goto( '/wp-admin/post-new.php' );
+	const frame = page.frameLocator( 'iframe[name="editor-canvas"]' );
+	await expect(
+		frame.locator( '.block-editor-block-list__layout' ).first()
+	).toBeVisible();
+	await page.waitForFunction( () =>
+		Boolean( window.wp?.blocks?.getBlockType( 'unitone/decorator' ) )
+	);
+	await page.evaluate( () => {
+		const make = ( attributes, text, inner = [] ) =>
+			wp.blocks.createBlock(
+				'unitone/decorator',
+				{ style: { color: { background: '#123456' } }, ...attributes },
+				[
+					wp.blocks.createBlock( 'core/paragraph', {
+						content: text,
+					} ),
+					...inner,
+				]
+			);
+		const blocks = [
+			make( { tagName: 'div' }, 'デコレーター本文', [
+				make( { tagName: 'div' }, '子デコレーター' ),
+			] ),
+			make(
+				{
+					tagName: 'article',
+					href: '/details',
+					linkText: '詳細を見る',
+					linkTarget: '_blank',
+					rel: 'noopener noreferrer',
+				},
+				'リンク付き本文'
+			),
+			make( { tagName: 'button' }, 'ボタン本文' ),
+			make(
+				{
+					tagName: 'button',
+					href: '/button-details',
+					linkText: 'ボタン詳細',
+				},
+				'リンク付きボタン本文'
+			),
+		];
+		wp.data.dispatch( 'core/block-editor' ).resetBlocks( blocks );
+		wp.data
+			.dispatch( 'core/editor' )
+			.editPost( {
+				title: 'unitone decorator adapter',
+				status: 'draft',
+			} );
+		wp.data
+			.dispatch( 'core/block-editor' )
+			.selectBlock( blocks[ 0 ].clientId );
+	} );
+	const styles = page.getByRole( 'tab', { name: /スタイル|Styles/ } );
+	if ( await styles.count() ) await styles.click();
+	await page
+		.getByRole( 'button', { name: 'メッシュグラデーション', exact: true } )
+		.click();
+	await expect(
+		page.getByText(
+			'このブロックは描画互換性が未確認です。対応アダプターを登録するまで背景を適用しません。',
+			{ exact: true }
+		)
+	).toHaveCount( 0 );
+	await page
+		.getByRole( 'checkbox', {
+			name: 'メッシュグラデーションを使用',
+			exact: true,
+		} )
+		.check();
+	await expect(
+		frame.locator( '[data-type="unitone/decorator"]' ).first()
+	).toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect(
+		frame.locator( '[data-type="unitone/decorator"]' ).nth( 1 )
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	await page.evaluate( async () => {
+		const blocks = wp.data.select( 'core/block-editor' ).getBlocks();
+		const mesh = blocks[ 0 ].attributes.odMeshGradient;
+		for ( const b of blocks )
+			wp.data
+				.dispatch( 'core/block-editor' )
+				.updateBlockAttributes( b.clientId, { odMeshGradient: mesh } );
+		await wp.data.dispatch( 'core/editor' ).savePost();
+	} );
+	const postId = await page.evaluate( () =>
+		wp.data.select( 'core/editor' ).getCurrentPostId()
+	);
+	await page.reload();
+	await page.waitForFunction(
+		() =>
+			window.wp?.data?.select( 'core/block-editor' ).getBlocks()
+				.length === 4
+	);
+	const blocks = await page.evaluate( () =>
+		wp.data
+			.select( 'core/block-editor' )
+			.getBlocks()
+			.map( ( b ) => ( {
+				id: b.clientId,
+				valid: b.isValid,
+				href: b.attributes.href,
+				rel: b.attributes.rel,
+				linkTarget: b.attributes.linkTarget,
+				tagName: b.attributes.tagName,
+				innerValid: b.innerBlocks.every( ( inner ) => inner.isValid ),
+			} ) )
+	);
+	for ( const b of blocks ) {
+		expect( b.valid && b.innerValid ).toBe( true );
+		await expect( frame.locator( `[data-block="${ b.id }"]` ) ).toHaveCSS(
+			'background-image',
+			/radial-gradient/
+		);
+	}
+	expect( blocks[ 1 ] ).toMatchObject( {
+		href: '/details',
+		rel: 'noopener noreferrer',
+		linkTarget: '_blank',
+		tagName: 'article',
+	} );
+	expect( blocks[ 2 ].tagName ).toBe( 'button' );
+	const frontend = await page.context().newPage();
+	await frontend.goto( `/?p=${ postId }&preview=true` );
+	const container = frontend.locator( '.wp-block-post-content' ).last();
+	await expect(
+		container.locator( 'div[data-unitone-layout~="decorator"]' ).first()
+	).toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect(
+		container.locator(
+			'[data-unitone-layout~="decorator"] [data-unitone-layout~="decorator"]'
+		)
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	const linked = container.locator(
+		'article[data-unitone-layout~="decorator"]'
+	);
+	await expect( linked ).toHaveCSS( 'background-image', /radial-gradient/ );
+	await expect(
+		linked.locator( '[data-unitone-layout="decorator__inner"]' )
+	).not.toHaveCSS( 'background-image', /radial-gradient/ );
+	const link = linked.locator( 'a' );
+	await expect( link ).toHaveAttribute( 'href', '/details' );
+	await expect( link ).toHaveAttribute( 'target', '_blank' );
+	await expect( link ).toHaveAttribute( 'rel', 'noopener noreferrer' );
+	await expect( link ).toHaveText( '詳細を見る' );
+	const buttons = container.locator(
+		'[data-unitone-layout~="decorator"][role="button"]'
+	);
+	await expect( buttons ).toHaveCount( 2 );
+	for ( let index = 0; index < 2; index++ )
+		await expect( buttons.nth( index ) ).toHaveCSS(
+			'background-image',
+			/radial-gradient/
+		);
+	await page.evaluate( async () => {
+		for ( const b of wp.data.select( 'core/block-editor' ).getBlocks() )
+			wp.data
+				.dispatch( 'core/block-editor' )
+				.updateBlockAttributes( b.clientId, {
+					odMeshGradient: {
+						...b.attributes.odMeshGradient,
+						enabled: false,
+					},
+				} );
+		await wp.data.dispatch( 'core/editor' ).savePost();
+	} );
+	await frontend.reload();
+	await expect( linked ).not.toHaveCSS(
+		'background-image',
+		/radial-gradient/
+	);
+	await expect( linked ).toHaveCSS( 'background-color', 'rgb(18, 52, 86)' );
+	await expect( linked.locator( 'a' ) ).toHaveAttribute( 'href', '/details' );
+	await expect( buttons ).toHaveCount( 2 );
+	await frontend.close();
+	expect( errors ).toEqual( [] );
+} );

@@ -24,6 +24,28 @@ WordPress 7.1 の `background.gradient` は `style.background.gradient` に保�
 
 エディターは `editor.BlockEdit` と `InspectorControls group="styles"` を使います。`editor.BlockListBlock` で iframe 内に React の style 要素を出し、WordPress の `data-block` でそのブロックだけにスコープを絞ります。DOM の探索・直接変更や親 document への依存はありません。既存のインライン背景を上書きするため、この限定的なエディター描画規則では `!important` を使用します。公開側には使用しません。サイドバー CSS は `enqueue_block_editor_assets` で読み込みます。キャンバス用の静的 CSS は不要です。
 
+## unitone ブロックの内蔵対応
+
+`unitone/section` は標準の生成クラスを使わず、編集画面・公開画面ともに `.unitone-section` が背景のルートです。このクラスを確認した場合のみ既存のルート描画処理を適用します。タグは利用者が main／section／article／aside／header／footer／div に変更できるため、section に固定しません。外部登録済みのアダプターは内蔵設定より優先します。対応候補・除外・描画戦略のフィルターは引き続き適用されます。
+
+確認した公式ソース: unitone 28.9.4、コミット `57b6fae8241a8c36fc862d0bf49dc4155312784a`。
+
+- [block.json: supports とルート指定](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/section/block.json)
+- [edit.js: 編集画面のマークアップ](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/section/edit.js)
+- [save.js: 保存マークアップ](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/section/save.js)
+
+背景を子要素へ探索して適用したり、unitone の保存マークアップを変更したりしません。ネストされたセクションは、それぞれの属性で独立して描画します。セクション区切り、背景クリップ、独自 CSS など、テーマ固有の装飾との組合せは未検証です。
+
+`unitone/decorator` は生成クラスや専用クラスを持たず、`data-unitone-layout` 属性の `decorator` トークンでルートを識別します。内蔵アダプターにルート属性の確認条件を持たせ、HTML の ASCII 空白区切りで完全一致を確認します。`decorator__inner`、`decorator__link`、部分一致の名前には適用しません。
+
+リンクあり・なしとも背景はルートです。リンクの href／target／rel／本文や内部構造は保持します。tagName が button の場合に保存される `div role="button"` にも対応します。外側リンクへの変換など unitone テーマ本体の描画処理との組合せは未検証です。
+
+確認した公式ソースはセクションと同じコミットです。
+
+- [decorator/block.json: 属性と supports](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/decorator/block.json)
+- [decorator/edit.js: 編集マークアップ](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/decorator/edit.js)
+- [decorator/save.js: 保存マークアップとリンク・ボタン指定](https://github.com/inc2734/unitone/blob/57b6fae8241a8c36fc862d0bf49dc4155312784a/src/blocks/decorator/save.js)
+
 ## 独自フィルターと描画アダプター
 
 対応候補の追加・除外だけでは、未知の HTML には背景を適用しません。アダプターをセットで登録してください。フィルターはプラグイン読込時、アダプターは init の処理中など wp_loaded より前に登録します。
