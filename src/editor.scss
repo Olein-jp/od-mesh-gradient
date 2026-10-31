@@ -1,0 +1,26 @@
+.od-mesh-preview {
+	position: relative;
+	aspect-ratio: 16 / 9;
+	margin: 20px 12px;
+	border: 1px solid #757575;
+	border-radius: 4px;
+	background-size: 100% 100%;
+}
+.od-mesh-handle {
+	position: absolute;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: 2px solid white;
+	border-radius: 50%;
+	transform: translate(-50%, -50%);
+	box-shadow: 0 0 0 1px #1e1e1e;
+	cursor: grab;
+	touch-action: none;
+	color: #000;
+	text-shadow: 0 0 3px white, 0 0 3px white;
+	font-weight: 700;
+	&.is-selected { outline: 3px solid var(--wp-admin-theme-color, #3858e9); outline-offset: 2px; }
+	&:focus-visible { outline: 3px dashed #111; outline-offset: 4px; }
+}
+.od-mesh-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }

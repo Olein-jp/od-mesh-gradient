@@ -1,84 +1,82 @@
 # OD Mesh Gradient
 
-WordPress プラグインの最小開発基盤です。メッシュグラデーションの機能はこれから実装します。
+WordPress 標準ブロックのスタイル設定に、CSS の radial-gradient を重ねたメッシュ風グラデーションの編集機能を追加します。独自ブロックは追加しません。
 
 ## 必要な環境
 
-- WordPress 5.9 以上、PHP 7.4 以上（更新ライブラリの要件に合わせています）
-- Node.js 20.19 以上（新規環境では Node.js 22 推奨）、npm、Docker
-- ホストで配布 ZIP を作る場合は PHP、Composer 2、Python 3
+- WordPress 7.1 以上／PHP 8.2 以上
+- 開発時: Node.js 24.18 以上、npm 11.16 以上、Docker、Composer 2、Python 3
+- 検証環境: WordPress 7.1.4／PHP 8.2
 
-wp-env は Docker 開発に必要な構成を備え、既存の Node.js 20 環境でも使える 10.36.0 に固定しています。
+## インストールと使用方法
 
-## 開発
+1. `dist/od-mesh-gradient.zip` を WordPress の「プラグインを追加」からアップロードして有効化します。
+2. グループなどの対応ブロックを選択し、サイドバーの「スタイル」を開きます。
+3. 「メッシュグラデーション」を開き、「メッシュグラデーションを使用」を有効にします。
+4. プリセット、ベースカラー、ポイントの色・位置・広がり・透明度を調整します。
+5. 投稿を保存します。公開画面では JavaScript を追加せず PHP が背景を適用します。
+
+ポイントは 2〜8 個です。プレビューでドラッグ、またはポイントにフォーカスして矢印キーで移動できます。Shift＋矢印キーは 10% 移動します。座標スライダーでも全ての位置を指定できます。
+
+プリセットは Soft Pastel、Ocean Breeze、Sunset Glow、Midnight Aurora、Neutral Mist の 5 種類です。選択すると現在のメッシュ設定を置き換えます。WordPress の Undo／Redo を利用できます。
+
+メッシュは既存の背景設定より優先します。元の背景値は保持するので、無効化・設定リセット・プラグイン停止で元の背景に戻ります。既存ブロックの保存 HTML は変更しません。
+
+## 対応方針
+
+`supports.color.gradients === true` または `supports.background.gradient === true` を宣言したサーバー登録済みブロックを自動検出します。安全に背景を描画できる既知の構造だけに適用します。未知のブロックはパネルに案内を表示し、有効化を停止します。
+
+MVP の標準アダプター: グループ、カラム、カラム内、段落、見出し、引用、プルクオート、詩、投稿コンテンツ。検証範囲は [テスト結果](docs/test-results.md) を参照してください。
+
+サードパーティー製ブロックはフィルターと描画アダプターで追加できます。[技術仕様と使用例](docs/development.md) を参照してください。
+
+## 開発とテスト
 
 ```sh
 npm ci
+composer install
+npm run build
 npm run env:start
-npm run composer -- install
-npm run lint:php
+npm run test:js
+npm run test:php
+npm run test:e2e
+composer lint
 ```
 
-起動時に表示される URL から WordPress を開けます。ほかの環境とポートが重複する場合は、Git 管理対象外の `.wp-env.override.json` で変更してください。この作業環境では開発用に 8894、テスト用に 8895 を設定しています。wp-env の初期認証情報は `admin` / `password` です。
+標準ポートは 8888、テストは 8889 です。この作業環境は `.wp-env.override.json` で 8894／8895 を使用しています。ブラウザテストの既定 URL は `http://localhost:8894` です。他の環境では `WP_BASE_URL` で指定してください。wp-env 初期ユーザーは `admin`／`password` です。
+
+wp-env はテスト用ブロックプラグイン `tests/fixtures` も有効化します。配布 ZIP には含めません。PHP 統合テストは WordPress を読み込んだ WP-CLI で動作します。
 
 ```sh
-npm run env:cli -- plugin activate od-mesh-gradient
-npm run env:logs
+npm run start
 npm run env:stop
-```
-
-Composer は wp-env の cli コンテナ内、`wp-content/plugins/od-mesh-gradient` で実行します。
-ホストに PHP と Composer がある場合は `composer install` / `composer lint` でも開発できます。
-PHP の追加先は `phpcs.xml.dist` の検査対象にも追加してください。
-
-## 多言語化
-
-表示する文章は英語を原文にして `__()`、`esc_html__()`、`esc_html_e()` などで囲み、テキストドメイン `od-mesh-gradient` を指定します。
-翻訳は `init` で読み込みます。
-
-```sh
-npm run i18n:pot
-# POT を翻訳ツールで開き languages/od-mesh-gradient-ja.po などを作成・更新
-npm run i18n:mo
-```
-
-`.po` と生成した `.mo` を `languages/` に保存してコミットしてください。配布 ZIP にも含まれます。
-PHP と WordPress が必要な POT / MO 生成は wp-env 内の WP-CLI を使います。
-
-## リリースと WordPress からの更新
-
-[wp-github-plugin-updater](https://github.com/inc2734/wp-github-plugin-updater) を Composer で導入しています。
-公開リポジトリ `Olein-jp/od-mesh-gradient` の最新の正式 GitHub Release を確認し、添付 ZIP から WordPress の通常の更新機能で更新します。
-
-バージョンは **`0.1.0` のようなタグ**で管理します。`v` は付けません。
-ソースの `Version` と `Stable tag` は開発用の `0.0.0` のままで構いません。配布時にタグから両方を自動設定します。
-
-変更をコミットして GitHub へ送った後、例えば次の操作で公開します。
-
-```sh
-git tag 0.1.0
-git push origin 0.1.0
-```
-
-GitHub Actions がコーディング規約を確認し、実行用の依存パッケージだけを含む `od-mesh-gradient.zip` を作り、同名の GitHub Release に添付します。
-標準の `GITHUB_TOKEN` を使うので追加のシークレット設定は不要です。リポジトリ側で Actions の実行が許可されている必要があります。
-既に公開したタグは変更せず、次回は番号を上げてください。
-
-初回は Releases の **`od-mesh-gradient.zip`** を WordPress 管理画面からアップロードしてください。
-GitHub が自動生成する Source code ZIP には依存パッケージが含まれません。
-以降は新しい Release の公開後に管理画面の更新確認を行います。ライブラリによる確認結果のキャッシュがあります。
-WordPress の「自動更新」を有効にすると WordPress 側のスケジュールで適用されます。
-
-配布物だけを手元で確認する場合:
-
-```sh
 python3 scripts/build-release.py 0.1.0
 ```
 
-`dist/od-mesh-gradient.zip` が生成されます。GitHub への公開は行いません。
-配布対象は `scripts/build-release.py` で明示しています。今後 `includes/` や `assets/` を追加した場合は配布対象にも追加してください。
-開発ツール、ローカル設定、`node_modules` は配布しません。
+配布前に `npm run build` を実行してください。ZIP に `build/` と本番用 Composer 依存を含むため、利用者の環境に Node.js は不要です。
+
+## 更新と翻訳
+
+既存の `wp-github-plugin-updater` を維持しています。GitHub の正式 Release に添付した ZIP から WordPress の更新機能で更新できます。タグは `0.1.0` の形式です。タグの push は GitHub Actions による公開を伴います。
+
+```sh
+npm run i18n:pot
+npm run i18n:mo
+```
+
+表示文には `od-mesh-gradient` のテキストドメインを指定しています。MVP の編集 UI 原文は日本語です。
+
+## 制限事項と今後の改善
+
+- 画像との合成、アニメーション、画像出力、ユーザープリセットの永続保存は対象外です。
+- 独自の背景要素を持つボタンやカバーなどは自動適用しません。対応候補と描画対応は別々に判定します。
+- テーマの `!important`、背景の疑似要素、独自の背景処理との一致は保証しません。
+- 数学的なメッシュ補間ではありません。配列の先頭ポイントほど手前に表示します。
+- 同期パターン、サイトエディター、テンプレートパーツ、タッチ端末、全ブラウザの確認は今後の課題です。
+- ポイントのドラッグ中は属性を更新するので、Undo のまとまり方は WordPress の履歴処理に従います。
+
+詳細な未検証項目と改善候補は [テスト結果](docs/test-results.md) に記載しています。
 
 ## ライセンス
 
-GPL-2.0-or-later
+GPL-2.0-or-later。Author: Koji Kuno / https://olein-design.com

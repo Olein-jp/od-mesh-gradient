@@ -2,10 +2,10 @@
 /**
  * Plugin Name: OD Mesh Gradient
  * Plugin URI: https://github.com/Olein-jp/od-mesh-gradient
- * Description: A foundation for mesh gradient features in WordPress.
- * Version: 0.0.0
- * Requires at least: 5.9
- * Requires PHP: 7.4
+ * Description: Visual mesh gradients for supported WordPress blocks.
+ * Version: 0.1.0
+ * Requires at least: 7.1
+ * Requires PHP: 8.2
  * Author: Koji Kuno
  * Author URI: https://olein-design.com
  * License: GPL-2.0-or-later
@@ -60,3 +60,8 @@ function od_mesh_gradient_dependency_notice() {
 	</div>
 	<?php
 }
+
+require_once __DIR__ . '/includes/class-attributevalidator.php';
+require_once __DIR__ . '/includes/class-cssgenerator.php';
+require_once __DIR__ . '/includes/class-plugin.php';
+\OleinDesign\MeshGradient\Plugin::boot();

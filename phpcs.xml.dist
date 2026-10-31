@@ -2,6 +2,7 @@
 <ruleset name="OD Mesh Gradient">
 	<description>OD Mesh Gradient の WordPress コーディング規約。</description>
 	<file>od-mesh-gradient.php</file>
+	<file>includes</file>
 	<arg name="extensions" value="php"/>
 	<arg value="ps"/>
 	<rule ref="WordPress"/>
@@ -12,7 +13,7 @@
 	</rule>
 	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
 		<properties>
-			<property name="prefixes" type="array"><element value="od_mesh_gradient"/></property>
+			<property name="prefixes" type="array"><element value="od_mesh_gradient"/><element value="OleinDesign"/></property>
 		</properties>
 	</rule>
 </ruleset>

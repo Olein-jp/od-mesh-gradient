@@ -18,13 +18,17 @@ def main():
     if len(sys.argv) != 2 or not re.fullmatch(r"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)", sys.argv[1]):
         sys.exit("バージョンを 0.0.0 形式で指定してください（v 接頭辞は不要です）。")
     version = sys.argv[1]
+    for name in ("index.js", "index.css", "index.asset.php"):
+        if not (ROOT / "build" / name).is_file():
+            sys.exit("ビルド成果物がありません。先に npm run build を実行してください。")
     with tempfile.TemporaryDirectory() as temporary:
         staging = Path(temporary) / SLUG
         staging.mkdir()
         # 配布対象は明示する。機能追加時には必要なディレクトリもここへ追加する。
         for name in (f"{SLUG}.php", "README.md", "readme.txt", "LICENSE", "composer.json", "composer.lock"):
             shutil.copy2(ROOT / name, staging / name)
-        shutil.copytree(ROOT / "languages", staging / "languages")
+        for name in ("languages", "includes", "build", "docs"):
+            shutil.copytree(ROOT / name, staging / name)
         for name, pattern, replacement in (
             (f"{SLUG}.php", r"(?m)^ \* Version: .*?$", f" * Version: {version}"),
             ("readme.txt", r"(?m)^Stable tag: .*?$", f"Stable tag: {version}"),

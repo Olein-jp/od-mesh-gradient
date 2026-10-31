@@ -2,7 +2,8 @@
   "name": "od-mesh-gradient",
   "private": true,
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=24.18.0",
+    "npm": ">=11.16.0"
   },
   "scripts": {
     "env:start": "wp-env start",
@@ -11,10 +12,25 @@
     "env:cli": "wp-env run cli wp",
     "composer": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient composer",
     "lint:php": "npm run composer -- lint",
-    "i18n:pot": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient wp i18n make-pot . languages/od-mesh-gradient.pot --domain=od-mesh-gradient --exclude=vendor,node_modules,dist,scripts --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/Olein-jp/od-mesh-gradient/issues\"}'",
-    "i18n:mo": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient wp i18n make-mo languages"
+    "i18n:pot": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient wp i18n make-pot . languages/od-mesh-gradient.pot --domain=od-mesh-gradient --exclude=vendor,node_modules,dist,scripts,tests --headers='{\"Report-Msgid-Bugs-To\":\"https://github.com/Olein-jp/od-mesh-gradient/issues\"}'",
+    "i18n:mo": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient wp i18n make-mo languages",
+    "build": "wp-scripts build",
+    "start": "wp-scripts start",
+    "test:js": "node --test tests/js/*.test.mjs",
+    "test:e2e": "playwright test",
+    "test:php": "wp-env run cli --env-cwd=wp-content/plugins/od-mesh-gradient wp eval-file tests/php/integration.php",
+    "test": "npm run test:js"
   },
   "devDependencies": {
-    "@wordpress/env": "10.36.0"
+    "@playwright/test": "^1.64.1",
+    "@wordpress/env": "^12.0.0",
+    "@wordpress/scripts": "^37.0.0",
+    "@wordpress/block-editor": "^18.1.0",
+    "@wordpress/blocks": "^16.2.0",
+    "@wordpress/components": "^42.0.0",
+    "@wordpress/compose": "^8.10.0",
+    "@wordpress/element": "^9.0.0",
+    "@wordpress/hooks": "^4.57.0",
+    "@wordpress/i18n": "^6.30.0"
   }
 }
