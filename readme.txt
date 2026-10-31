@@ -4,7 +4,7 @@ Tags: gradient, block-editor, design
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,5 +22,9 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 3. スタイル内の「メッシュグラデーション」を開きます。
 
 == Changelog ==
+= 0.1.1 =
+* 選択中のプリセット名を表示するように修正。手動変更時は「カスタム」と表示します。
+* 保存・再読み込み、Undo／Redo に合わせてプリセット表示を復元します。
+
 = 0.1.0 =
 * メッシュ編集 GUI、属性保存、エディター・公開画面描画、拡張フィルターを追加。

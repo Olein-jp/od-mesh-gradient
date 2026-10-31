@@ -89,6 +89,26 @@ export const presets = [
 		} ) ),
 	},
 } ) );
+/** 保存された設定から一致するプリセットを判定する。ID と有効状態は比較しない。 */
+export const getPresetValue = ( mesh ) => {
+	if ( ! valid( mesh ) ) return '';
+	const index = presets.findIndex(
+		( { value } ) =>
+			mesh.baseColor.toLowerCase() === value.baseColor.toLowerCase() &&
+			mesh.points.length === value.points.length &&
+			mesh.points.every( ( point, pointIndex ) => {
+				const presetPoint = value.points[ pointIndex ];
+				return (
+					point.color.toLowerCase() ===
+						presetPoint.color.toLowerCase() &&
+					[ 'x', 'y', 'size', 'opacity' ].every(
+						( key ) => point[ key ] === presetPoint[ key ]
+					)
+				);
+			} )
+	);
+	return index === -1 ? '' : String( index );
+};
 export const defaultMesh = () =>
 	JSON.parse( JSON.stringify( presets[ 0 ].value ) );
 export const candidate = ( entry, supports ) =>

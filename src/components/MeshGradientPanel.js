@@ -11,7 +11,13 @@ import {
 	BaseControl,
 } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import { valid, generateCSS, presets, defaultMesh } from '../utils/mesh';
+import {
+	valid,
+	generateCSS,
+	presets,
+	defaultMesh,
+	getPresetValue,
+} from '../utils/mesh';
 
 export default function MeshGradientPanel( { value, onChange, compatible } ) {
 	const mesh = valid( value ) ? value : defaultMesh();
@@ -71,14 +77,12 @@ export default function MeshGradientPanel( { value, onChange, compatible } ) {
 				<>
 					<SelectControl
 						label={ __( 'プリセット', 'od-mesh-gradient' ) }
-						value=""
+						value={ getPresetValue( mesh ) }
 						options={ [
 							{
-								label: __(
-									'選択してください',
-									'od-mesh-gradient'
-								),
+								label: __( 'カスタム', 'od-mesh-gradient' ),
 								value: '',
+								disabled: true,
 							},
 							...presets.map( ( preset, index ) => ( {
 								label: preset.name,

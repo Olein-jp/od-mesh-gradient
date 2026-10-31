@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 const source = readFileSync(new URL('../../src/utils/mesh.js', import.meta.url), 'utf8');
-const {valid, generateCSS, defaultMesh, presets, candidate} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const {valid, generateCSS, defaultMesh, presets, candidate, getPresetValue} = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
 test('5 種類のプリセットを検証し順序どおり CSS を生成する', () => {
  assert.equal(presets.length, 5);
  for (const {value} of presets) {assert.ok(valid(value)); assert.ok(generateCSS(value).startsWith('radial-gradient(circle at 20% 20%,rgba(')); assert.ok(generateCSS(value).endsWith(`linear-gradient(${value.baseColor},${value.baseColor})`));}
@@ -14,3 +14,25 @@ test('不正な値と過大な構造を拒否する', () => {
 });
 test('境界値と無効化を扱う', () => {const mesh = defaultMesh(); Object.assign(mesh.points[0], {x: 0, y: 100, size: 150, opacity: 0}); assert.ok(valid(mesh)); assert.ok(generateCSS(mesh).includes('150%)')); mesh.enabled = false; assert.equal(generateCSS(mesh), '');});
 test('PHP と JS の supports 不一致を拒否し明示的な追加を許可する', () => {assert.ok(candidate({supported:true, declared:true}, {background:{gradient:true}})); assert.ok(candidate({supported:true, declared:true}, {color:{gradients:true}})); assert.equal(candidate({supported:true, declared:true}, {}), false); assert.ok(candidate({supported:true, override:true}, {})); assert.equal(candidate({supported:false, override:true}, {}), false);});
+
+test('プリセット名を保存設定から復元し、手動変更と元に戻す操作に追従する', () => {
+ for (const [index, preset] of presets.entries()) {
+  const mesh = JSON.parse(JSON.stringify(preset.value));
+  assert.equal(getPresetValue(mesh), String(index));
+  mesh.enabled = false;
+  mesh.baseColor = mesh.baseColor.toUpperCase();
+  mesh.points.forEach((point, i) => { point.id = `restored-${i}`; point.color = point.color.toUpperCase(); });
+  assert.equal(getPresetValue(mesh), String(index));
+  for (const key of ['x', 'y', 'size', 'opacity', 'color']) {
+   const custom = JSON.parse(JSON.stringify(mesh));
+   custom.points[0][key] = key === 'color' ? '#000000' : custom.points[0][key] + 1;
+   assert.equal(getPresetValue(custom), '');
+  }
+  const custom = {...mesh, baseColor:'#000000'};
+  assert.equal(getPresetValue(custom), '');
+  assert.equal(getPresetValue(mesh), String(index));
+ }
+ assert.equal(getPresetValue(null), '');
+ const mesh = defaultMesh(); mesh.points.reverse(); assert.equal(getPresetValue(mesh), '');
+ mesh.points.pop(); assert.equal(getPresetValue(mesh), '');
+});

@@ -43,12 +43,22 @@ test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', 
 	await page
 		.getByRole( 'checkbox', { name: 'メッシュグラデーションを使用' } )
 		.check();
+	const preset = page.getByRole( 'combobox', {
+		name: 'プリセット',
+		exact: true,
+	} );
+	await expect( preset ).toHaveValue( '0' );
+	await expect( preset.locator( 'option:checked' ) ).toHaveText(
+		'Soft Pastel'
+	);
 	const editor = page.frameLocator( 'iframe[name="editor-canvas"]' );
 	const root = editor.locator( '[data-type="core/group"]' ).first();
 	await expect( root ).toHaveCSS( 'background-image', /radial-gradient/ );
 	await page
 		.getByRole( 'spinbutton', { name: 'X 座標 (%)', exact: true } )
 		.fill( '35' );
+	await expect( preset ).toHaveValue( '' );
+	await expect( preset.locator( 'option:checked' ) ).toHaveText( 'カスタム' );
 	await page
 		.getByRole( 'spinbutton', { name: '広がり (%)', exact: true } )
 		.fill( '120' );
@@ -87,6 +97,10 @@ test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', 
 	await page
 		.getByRole( 'combobox', { name: 'プリセット', exact: true } )
 		.selectOption( '1' );
+	await expect( preset ).toHaveValue( '1' );
+	await expect( preset.locator( 'option:checked' ) ).toHaveText(
+		'Ocean Breeze'
+	);
 	await page.screenshot( {
 		path: '/tmp/od-mesh-editor.png',
 		fullPage: true,
@@ -112,6 +126,31 @@ test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', 
 		)
 	).toBe( true );
 	await expect( root ).toHaveCSS( 'background-image', /radial-gradient/ );
+	await page.evaluate( () =>
+		wp.data
+			.dispatch( 'core/block-editor' )
+			.selectBlock(
+				wp.data.select( 'core/block-editor' ).getBlocks()[ 0 ].clientId
+			)
+	);
+	if ( await styles.count() ) await styles.click();
+	await page
+		.getByRole( 'button', { name: 'メッシュグラデーション', exact: true } )
+		.click();
+	await expect( preset ).toHaveValue( '1' );
+	await expect( preset.locator( 'option:checked' ) ).toHaveText(
+		'Ocean Breeze'
+	);
+	await page
+		.getByRole( 'spinbutton', { name: 'X 座標 (%)', exact: true } )
+		.fill( '40' );
+	await expect( preset ).toHaveValue( '' );
+	await page.evaluate( () => wp.data.dispatch( 'core/editor' ).undo() );
+	await expect( preset ).toHaveValue( '1' );
+	await page.evaluate( () => wp.data.dispatch( 'core/editor' ).redo() );
+	await expect( preset ).toHaveValue( '' );
+	await page.evaluate( () => wp.data.dispatch( 'core/editor' ).undo() );
+	await expect( preset ).toHaveValue( '1' );
 	const frontend = await page.context().newPage();
 	await frontend.goto( `/?p=${ postId }&preview=true` );
 	await expect(
