@@ -1,0 +1,19 @@
+# Copyright (C) 2026 Koji Kuno
+# このファイルは GPL-2.0-or-later で配布します。
+msgid ""
+msgstr ""
+"Project-Id-Version: OD Mesh Gradient\n"
+"Report-Msgid-Bugs-To: https://github.com/Olein-jp/od-mesh-gradient/issues\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#. プラグインの説明
+msgid "A foundation for mesh gradient features in WordPress."
+msgstr "WordPress 向けメッシュグラデーション機能の開発基盤。"
+
+#: od-mesh-gradient.php:59
+msgid "OD Mesh Gradient: Dependencies are missing. Run composer install or install the ZIP from GitHub Releases."
+msgstr "OD Mesh Gradient: 依存パッケージがありません。composer install を実行するか、GitHub Releases の ZIP をインストールしてください。"

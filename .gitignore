@@ -1,0 +1,9 @@
+/node_modules/
+/vendor/
+/dist/
+/.wp-env.override.json
+/.wp-env.*.json
+/.phpcs-cache
+/.DS_Store
+__pycache__/
+*.pyc

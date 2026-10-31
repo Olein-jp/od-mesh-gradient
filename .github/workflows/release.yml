@@ -1,0 +1,43 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          tools: composer:v2
+          coverage: none
+      - run: composer validate --strict
+      - run: composer install --prefer-dist --no-interaction --no-progress
+      - run: composer lint
+      - name: タグの検証と配布 ZIP の作成
+        env:
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: python3 scripts/build-release.py "$RELEASE_VERSION"
+      - name: ZIP を添付して GitHub Release を公開
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ github.ref_name }}
+        run: >-
+          gh release create "$RELEASE_VERSION"
+          dist/od-mesh-gradient.zip
+          --verify-tag
+          --title "$RELEASE_VERSION"
+          --generate-notes
