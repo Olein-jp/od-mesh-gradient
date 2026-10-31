@@ -1,4 +1,26 @@
 const { test, expect } = require( '@playwright/test' );
+
+// 新規環境の案内ダイアログと、サイドバーの描画タイミングを揃える。
+async function openMeshPanel( page ) {
+	await page.evaluate( () =>
+		wp.data
+			.dispatch( 'core/preferences' )
+			.set( 'core/edit-post', 'welcomeGuide', false )
+	);
+	const styles = page.getByRole( 'tab', { name: /スタイル|Styles/ } );
+	const panel = page.getByRole( 'button', {
+		name: 'メッシュグラデーション',
+		exact: true,
+	} );
+	await expect
+		.poll(
+			async () =>
+				( await styles.isVisible() ) || ( await panel.isVisible() )
+		)
+		.toBe( true );
+	if ( await styles.isVisible() ) await styles.click();
+	await panel.click();
+}
 test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', async ( {
 	page,
 } ) => {
@@ -412,11 +434,7 @@ test( 'unitone セクションの警告解消・可変タグ・入れ子・保�
 			.dispatch( 'core/block-editor' )
 			.selectBlock( blocks[ 1 ].clientId );
 	} );
-	const styles = page.getByRole( 'tab', { name: /スタイル|Styles/ } );
-	if ( await styles.count() ) await styles.click();
-	await page
-		.getByRole( 'button', { name: 'メッシュグラデーション', exact: true } )
-		.click();
+	await openMeshPanel( page );
 	await expect(
 		page.getByText(
 			'このブロックは描画互換性が未確認です。対応アダプターを登録するまで背景を適用しません。',
@@ -572,21 +590,15 @@ test( 'unitone デコレーターのリンク・ボタン・入れ子・背景�
 			),
 		];
 		wp.data.dispatch( 'core/block-editor' ).resetBlocks( blocks );
-		wp.data
-			.dispatch( 'core/editor' )
-			.editPost( {
-				title: 'unitone decorator adapter',
-				status: 'draft',
-			} );
+		wp.data.dispatch( 'core/editor' ).editPost( {
+			title: 'unitone decorator adapter',
+			status: 'draft',
+		} );
 		wp.data
 			.dispatch( 'core/block-editor' )
 			.selectBlock( blocks[ 0 ].clientId );
 	} );
-	const styles = page.getByRole( 'tab', { name: /スタイル|Styles/ } );
-	if ( await styles.count() ) await styles.click();
-	await page
-		.getByRole( 'button', { name: 'メッシュグラデーション', exact: true } )
-		.click();
+	await openMeshPanel( page );
 	await expect(
 		page.getByText(
 			'このブロックは描画互換性が未確認です。対応アダプターを登録するまで背景を適用しません。',
