@@ -87,6 +87,20 @@ test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', 
 	await page
 		.getByRole( 'spinbutton', { name: '透明度 (%)', exact: true } )
 		.fill( '60' );
+	const pointColors = page.locator( '.components-base-control' ).filter( {
+		has: page.getByText( 'ポイントの色', { exact: true } ),
+	} );
+	const swatch = pointColors.getByRole( 'option' ).first();
+	await swatch.click();
+	await expect( page.locator( '.od-mesh-handle' ).first() ).toHaveCSS(
+		'background-color',
+		await swatch.evaluate(
+			( element ) => getComputedStyle( element ).backgroundColor
+		)
+	);
+	await pointColors
+		.locator( '.components-color-palette__custom-color-button' )
+		.click();
 	await page
 		.getByRole( 'textbox', { name: 'Hex color', exact: true } )
 		.fill( 'ff8800' );
@@ -100,6 +114,7 @@ test( 'GUI 編集・保存・再読込・公開表示・無効化・Undo/Redo', 
 					.attributes.odMeshGradient.points[ 0 ].color
 		)
 	).toBe( '#ff8800' );
+	await page.keyboard.press( 'Escape' );
 	await page
 		.getByRole( 'button', { name: 'ポイント追加', exact: true } )
 		.click();

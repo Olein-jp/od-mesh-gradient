@@ -1,10 +1,10 @@
 import { useState, useRef } from '@wordpress/element';
+import { ColorPalette } from '@wordpress/block-editor';
+import { colord } from 'colord';
 import {
 	PanelBody,
 	ToggleControl,
 	SelectControl,
-	ColorPalette,
-	ColorPicker,
 	RangeControl,
 	Button,
 	Notice,
@@ -188,12 +188,14 @@ export default function MeshGradientPanel( { value, onChange, compatible } ) {
 						label={ __( 'ベースカラー', 'od-mesh-gradient' ) }
 					>
 						<ColorPalette
-							colors={ [] }
 							clearable={ false }
+							disableCustomColors={ false }
+							enableAlpha={ false }
 							value={ mesh.baseColor }
 							onChange={ ( baseColor ) => {
-								if ( /^#[\da-f]{6}$/i.test( baseColor ) )
-									update( { baseColor } );
+								const color = colord( baseColor );
+								if ( color.isValid() && color.alpha() === 1 )
+									update( { baseColor: color.toHex() } );
 							} }
 						/>
 					</BaseControl>
@@ -209,14 +211,24 @@ export default function MeshGradientPanel( { value, onChange, compatible } ) {
 						} ) ) }
 						onChange={ select }
 					/>
-					<ColorPicker
-						color={ point.color }
-						enableAlpha={ false }
-						onChange={ ( color ) => {
-							if ( /^#[\da-f]{6}$/i.test( color ) )
-								updatePoint( point.id, { color } );
-						} }
-					/>
+					<BaseControl
+						label={ __( 'ポイントの色', 'od-mesh-gradient' ) }
+					>
+						<ColorPalette
+							key={ point.id }
+							clearable={ false }
+							disableCustomColors={ false }
+							enableAlpha={ false }
+							value={ point.color }
+							onChange={ ( value ) => {
+								const color = colord( value );
+								if ( color.isValid() && color.alpha() === 1 )
+									updatePoint( point.id, {
+										color: color.toHex(),
+									} );
+							} }
+						/>
+					</BaseControl>
 					{ [
 						[ 'x', __( 'X 座標 (%)', 'od-mesh-gradient' ), 0, 100 ],
 						[ 'y', __( 'Y 座標 (%)', 'od-mesh-gradient' ), 0, 100 ],

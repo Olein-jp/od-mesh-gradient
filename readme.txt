@@ -4,7 +4,7 @@ Tags: gradient, block-editor, design
 Requires at least: 7.1
 Tested up to: 7.1
 Requires PHP: 8.2
-Stable tag: 0.1.2
+Stable tag: 0.1.3
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,6 +22,11 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 3. スタイル内の「メッシュグラデーション」を開きます。
 
 == Changelog ==
+= 0.1.3 =
+* 各カラーポイントとベースカラーをテーマなどのパレットから選択できるように改善。
+* 任意の色は、現在の色のボタンからカラーピッカーを開いて指定できます。
+* パレットの短い HEX 表記や RGB 表記を保存用の 6 桁 HEX に変換。
+
 = 0.1.2 =
 * unitone のセクションとデコレーターに内蔵アダプターを追加。
 * 可変 HTML タグ、リンク付きデコレーター、ボタン指定、入れ子の描画に対応。
